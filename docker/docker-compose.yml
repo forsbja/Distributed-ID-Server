@@ -1,0 +1,123 @@
+version: '3'
+
+services:
+  reverse-proxy:
+    image: traefik:v3.0
+    command: --log.level=DEBUG -api.insecure=true --providers.etcd.endpoints=etcd1:2379,etcd2:2379,etcd3:2379 --providers.etcd.rootkey=traefik --providers.file.filename=/etc/traefik/tls.yaml --metrics.prometheus=true --entrypoints.http.address=:80 --entrypoints.https.address=:443
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    networks:
+      - node_net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik:/etc/traefik
+      - ../certificates:/certificates
+
+  etcd1:
+    image: quay.io/coreos/etcd:v3.5.0
+    command: etcd --name etcd1 --initial-advertise-peer-urls http://etcd1:2380 --listen-peer-urls http://0.0.0.0:2380 --advertise-client-urls http://etcd1:2379 --listen-client-urls http://0.0.0.0:2379 --initial-cluster etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380 --initial-cluster-token etcd-cluster-1 --initial-cluster-state new --data-dir /etcd-data
+    ports:
+      - "2379:2379"
+    networks:
+      - node_net
+    volumes:
+      - ./etcd/etcd-data1:/etcd-data
+
+  etcd2:
+    image: quay.io/coreos/etcd:v3.5.0
+    command: etcd --name etcd2 --initial-advertise-peer-urls http://etcd2:2380 --listen-peer-urls http://0.0.0.0:2380 --advertise-client-urls http://etcd2:2379 --listen-client-urls http://0.0.0.0:2379 --initial-cluster etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380 --initial-cluster-token etcd-cluster-1 --initial-cluster-state new --data-dir /etcd-data
+    ports:
+      - "2380:2379"
+    networks:
+      - node_net
+    volumes:
+      - ./etcd/etcd-data2:/etcd-data
+
+  etcd3:
+    image: quay.io/coreos/etcd:v3.5.0
+    command: etcd --name etcd3 --initial-advertise-peer-urls http://etcd3:2380 --listen-peer-urls http://0.0.0.0:2380 --advertise-client-urls http://etcd3:2379 --listen-client-urls http://0.0.0.0:2379 --initial-cluster etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380 --initial-cluster-token etcd-cluster-1 --initial-cluster-state new --data-dir /etcd-data
+    ports:
+      - "2381:2379"
+    networks:
+      - node_net
+    volumes:
+      - ./etcd/etcd-data3:/etcd-data
+
+  redis1:
+    image: "redis:7.2-rc1"
+    command: redis-server --appendonly yes --appendfsync always --enable-debug-command local --requirepass password --masterauth password
+    expose:
+      - 6379
+    volumes:
+     - ./redis/redis-data1:/data
+     - ./redis/redis1.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      node_net:
+        ipv4_address: 172.29.0.10
+
+  sentinel1:
+    image: "redis:7.2-rc1"
+    ports:
+      - "26379:26379"
+    volumes:
+      - ./sentinel/sentinel1:/etc/sentinel
+    command: redis-server /etc/sentinel/sentinel.conf --sentinel
+    networks:
+      node_net:
+        ipv4_address: 172.29.0.11
+
+  redis2:
+    image: "redis:7.2-rc1"
+    command: redis-server --appendonly yes --appendfsync always --enable-debug-command local --requirepass password --masterauth password
+    expose:
+      - 6379
+    volumes:
+     - ./redis/redis-data2:/data
+     - ./redis/redis2.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      node_net:
+        ipv4_address: 172.29.0.20
+
+  sentinel2:
+    image: "redis:7.2-rc1"
+    ports:
+      - "26380:26379"
+    volumes:
+      - ./sentinel/sentinel2:/etc/sentinel
+    command: redis-server /etc/sentinel/sentinel.conf --sentinel
+    networks:
+      node_net:
+        ipv4_address: 172.29.0.21
+
+  redis3:
+    image: "redis:7.2-rc1"
+    command: redis-server --appendonly yes --appendfsync always --enable-debug-command local --requirepass password --masterauth password
+    expose:
+      - 6379
+    volumes:
+     - ./redis/redis-data3:/data
+     - ./redis/redis3.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      node_net:
+        ipv4_address: 172.29.0.30
+
+  sentinel3:
+    image: "redis:7.2-rc1"
+    ports:
+      - "26381:26379"
+    volumes:
+      - ./sentinel/sentinel3:/etc/sentinel
+    command: redis-server /etc/sentinel/sentinel.conf --sentinel
+    networks:
+      node_net:
+        ipv4_address: 172.29.0.31
+    
+networks:
+  node_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.29.0.0/16

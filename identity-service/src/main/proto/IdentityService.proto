@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+
+service IdentityService {
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
+  rpc ModifyUser (ModifyUserRequest) returns (ModifyUserResponse);
+  rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse);
+  rpc Lookup (LookupUserRequest) returns (LookupUserResponse);
+  rpc ReverseLookup (ReverseLookupUserRequest) returns (ReverseLookupUserResponse);
+  rpc ListLogins (Empty) returns (ListLoginsResponse);
+  rpc ListIds(Empty) returns (ListIdsResponse);
+  rpc ListAllInfo(Empty) returns (ListAllInfoResponse);
+}
+
+message Empty {
+
+}
+
+message CreateUserRequest {
+  string loginName = 1;
+  string realName = 2;
+  string password = 3;
+}
+
+message CreateUserResponse {
+  bool success = 1;
+  string message = 2;
+  string userId = 3;
+}
+
+message ModifyUserRequest {
+  string oldLoginName = 1;
+  string newLoginName = 2;
+  string password = 3;
+}
+
+message ModifyUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteUserRequest {
+  string loginName = 1;
+  string password = 2;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message LookupUserRequest {
+  string loginName = 1;
+}
+
+message LookupUserResponse {
+  bool success = 1;
+  string userId = 2;
+  string realName = 3;
+  string message = 4;
+}
+
+message ReverseLookupUserRequest {
+  string userId = 1;
+}
+
+message ReverseLookupUserResponse {
+  bool success = 1;
+  string loginName = 2;
+  string realName = 3;
+  string message = 4;
+}
+
+message ListLoginsResponse {
+  repeated string loginNames = 1;
+}
+
+message ListIdsResponse {
+  repeated string userIds = 1;
+}
+
+message ListAllInfoResponse {
+  repeated UserEntry userEntries = 1;
+}
+
+message UserEntry {
+  string userId = 1;
+  string loginName = 2;
+  string realName = 3;
+}
